@@ -1,0 +1,15 @@
+.DS_Store
+.idea
+nbproject
+/var/*
+!/var/labels
+/vendor
+/database
+/public/*
+!/public/.htaccess
+!/public/typo3conf
+/public/typo3conf/*
+/public/typo3conf/ext/container
+/public/typo3conf/ext/gridtocontainer
+!/public/typo3conf/LocalConfiguration.php
+!/public/typo3conf/AdditionalConfiguration.php

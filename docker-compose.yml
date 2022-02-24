@@ -1,0 +1,187 @@
+version: '3.9'
+services:
+  traefik:
+    image: traefik:v2.5
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8080:8080"
+    restart: always
+    command:
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.file.directory=/config/"
+      - "--providers.file.watch=true"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--log.level=DEBUG"
+      - "--accessLog"
+      - "--providers.docker.network=devops"
+    networks:
+      - default
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.traefik.rule=Host(`traefik.dev.test`)"
+      - "traefik.http.routers.traefik.entrypoints=websecure"
+      - "traefik.http.routers.traefik.tls.certresolver=letsencryptresolver"
+      - "traefik.http.routers.traefik.service=api@internal"
+      - "traefik.http.routers.traefik.tls=true"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./config/:/config/
+
+  portainer:
+    image: portainer/portainer:latest
+    depends_on:
+      - database
+      - traefik
+    restart: always
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - portainer_data:/data
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.portainer.rule=Host(`portainer.dev.test`)"
+      - "traefik.http.routers.portainer.entrypoints=web"
+      - "traefik.http.routers.portainer-secure.rule=Host(`portainer.dev.test`)"
+      - "traefik.http.routers.portainer-secure.entrypoints=websecure"
+      - "traefik.http.routers.portainer-secure.tls=true"
+
+  adminer:
+    image: adminer:latest
+    volumes:
+      - ./config/adminer/php/custom.ini:/usr/local/etc/php/conf.d/custom.ini
+    restart: always
+    depends_on:
+      - database
+      - traefik
+    links:
+      - database
+    environment:
+      ADMINER_DEFAULT_SERVER: database
+      MYSQL_USER: root
+      MYSQL_PASSWORD: root
+      MYSQL_ROOT_PASSWORD: root
+      ADMINER_DESIGN: rmsoft_blue
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.adminer.rule=Host(`adminer.dev.test`)"
+      - "traefik.http.routers.adminer.entrypoints=web"
+      - "traefik.http.routers.adminer-secure.rule=Host(`adminer.dev.test`)"
+      - "traefik.http.routers.adminer-secure.entrypoints=websecure"
+      - "traefik.http.routers.adminer-secure.tls=true"
+
+  boilerplate:
+    image: webdevops/php-apache:7.4
+    container_name: boilerplate
+    depends_on:
+      - database
+      - traefik
+    volumes:
+      - ./:/var/www:cached
+      - ./public:/var/www/public:cached
+      - ./public/fileadmin:/var/www/public/fileadmin
+      - ./public/uploads:/var/www/public/uploads
+      - ./public/typo3:/var/www/public/typo3
+      - ./public/typo3conf:/var/www/public/typo3conf
+      - ./public/typo3temp:/var/www/public/typo3temp
+      - ./vendor:/var/www/vendor
+      - ./log/boilerplate.dev.test:/var/log/apache2
+    links:
+      - database
+    restart: always
+    environment:
+      - WEB_ALIAS_DOMAIN=boilerplate.dev.test
+      - WEB_DOCUMENT_ROOT=/var/www/public
+      - MAX_INPUT_TIME=0
+      - PHP_DATE_TIMEZONE=Europe/Berlin
+      - PHP_DISPLAY_ERRORS=1
+      - PHP_MAX_EXECUTION_TIME=240
+      - PHP_MAX_INPUT_TIME=0
+      - PHP_POST_MAX_SIZE=32M
+      - PHP_UPLOAD_MAX_FILESIZE=32M
+      - PHP_OPCACHE_MEMORY_CONSUMPTION=128
+      - PHP_OPCACHE_MAX_ACCELERATED_FILES=10000
+      - PHP_MEMORY_LIMIT=512M
+      - php.realpath_cache_size=5M
+      - php.realpath_cache_ttl=300
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.boilerplate.rule=Host(`boilerplate.dev.test`)"
+      - "traefik.http.routers.boilerplate.entrypoints=web"
+      - "traefik.http.routers.boilerplate-secure.rule=Host(`boilerplate.dev.test`)"
+      - "traefik.http.routers.boilerplate-secure.entrypoints=websecure"
+      - "traefik.http.routers.boilerplate-secure.tls=true"
+      
+      
+  nutzfahrzeug:
+    image: webdevops/php-apache:7.4
+    container_name: nutzfahrzeug
+    depends_on:
+      - database
+      - traefik
+    volumes:
+      - ./:/var/www:cached
+      - ./public:/var/www/public:cached
+      - ./public/fileadmin:/var/www/public/fileadmin
+      - ./public/uploads:/var/www/public/uploads
+      - ./public/typo3:/var/www/public/typo3
+      - ./public/typo3conf:/var/www/public/typo3conf
+      - ./public/typo3temp:/var/www/public/typo3temp
+      - ./vendor:/var/www/vendor
+      - ./log/nutzfahrzeug.dev.test:/var/log/apache2
+    links:
+      - database
+    restart: always
+    environment:
+      - WEB_ALIAS_DOMAIN=nutzfahrzeug.dev.test
+      - WEB_DOCUMENT_ROOT=/var/www/public
+      - MAX_INPUT_TIME=0
+      - PHP_DATE_TIMEZONE=Europe/Berlin
+      - PHP_DISPLAY_ERRORS=1
+      - PHP_MAX_EXECUTION_TIME=240
+      - PHP_MAX_INPUT_TIME=0
+      - PHP_POST_MAX_SIZE=32M
+      - PHP_UPLOAD_MAX_FILESIZE=32M
+      - PHP_OPCACHE_MEMORY_CONSUMPTION=128
+      - PHP_OPCACHE_MAX_ACCELERATED_FILES=10000
+      - PHP_MEMORY_LIMIT=512M
+      - php.realpath_cache_size=5M
+      - php.realpath_cache_ttl=300
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.nutzfahrzeug.rule=Host(`nutzfahrzeug.dev.test`)"
+      - "traefik.http.routers.nutzfahrzeug.entrypoints=web"
+      - "traefik.http.routers.nutzfahrzeug-secure.rule=Host(`nutzfahrzeug.dev.test`)"
+      - "traefik.http.routers.nutzfahrzeug-secure.entrypoints=websecure"
+      - "traefik.http.routers.nutzfahrzeug-secure.tls=true"
+
+  database:
+    image: mysql:5.7
+    container_name: database
+    volumes:
+      - ./database/mysql:/var/lib/mysql
+      - ./config/database/custom.cnf:/etc/mysql/conf.d/custom.cnf  
+    ports:
+      - '3308:3306'
+    restart: always
+    command: --max_allowed_packet=32505856
+    environment:
+      - MYSQL_ROOT_PASSWORD=root
+      - MYSQL_DATABASE=maindb
+
+volumes:
+  portainer_data:
+  fileadmin:
+  typo3conf:
+  typo3temp:
+  uploads:
+  vendor:
+  typo3:
+networks:
+  default:
+    name: devops
+    driver: bridge
+    driver_opts:
+      com.docker.network.driver.mtu: 1450
+      
